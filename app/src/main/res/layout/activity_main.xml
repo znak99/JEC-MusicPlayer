@@ -5,25 +5,103 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@drawable/background"
     tools:context=".MainActivity">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="22cm0138ホンスンウ"
-        android:textColor="@color/black"
+        android:text="@string/student_id"
+        android:textColor="@color/customTrueBlack"
         android:textSize="12sp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
+        android:layout_marginHorizontal="12dp"
         android:orientation="vertical">
 
         <ImageView
             android:layout_width="wrap_content"
+            android:layout_height="130dp"
+            android:src="@drawable/logo" />
+
+        <FrameLayout
+            android:id="@+id/xmlVisualizerFrame"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/logo"/>
+            android:clipChildren="false">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="56dp"
+                android:padding="56dp"
+                android:adjustViewBounds="true"
+                android:src="@drawable/visualizer"
+                android:elevation="8dp"/>
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/xmlPlayingMusicInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/customSecondary"
+            android:text="Now playing: "
+            android:textStyle="bold|italic"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:background="@drawable/rounded_rectangle"
+            android:paddingVertical="12dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/xmlShowSDCardButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="12dp"
+                android:background="@null"
+                android:layout_weight="0.3"
+                android:padding="4dp"
+                android:src="@drawable/sd"
+                android:scaleType="fitCenter"/>
+
+            <ImageButton
+                android:id="@+id/xmlPlayButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:layout_weight="1"
+                android:src="@drawable/play"
+                android:scaleType="fitCenter"/>
+
+            <ImageButton
+                android:id="@+id/xmlStopButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="12dp"
+                android:background="@null"
+                android:padding="4dp"
+                android:layout_weight="0.3"
+                android:src="@drawable/stop"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"/>
+
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/xmlProgressBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:thumbTint="@color/customPrimary"
+            android:progressTint="@color/customSecondary"
+            android:layout_marginVertical="12dp"/>
 
     </LinearLayout>
 
