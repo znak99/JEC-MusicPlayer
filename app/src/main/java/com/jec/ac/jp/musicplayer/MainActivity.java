@@ -1,6 +1,8 @@
 package com.jec.ac.jp.musicplayer;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -10,7 +12,9 @@ import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
@@ -19,6 +23,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView visuallizerImage1, visuallizerImage2, visuallizerImage3;
     private ObjectAnimator visualizerAnimator1, visualizerAnimator2, visualizerAnimator3;
+    
+    private static final int EXTERNAL_STORAGE = 1;
 
     public static int REQUEST_CODE = 1;
 
@@ -38,6 +45,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+//        if (Build.VERSION.SDK_INT >= 23) {
+//            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+//                    ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(this,
+//                        new String[]{
+//                                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                                Manifest.permission.READ_EXTERNAL_STORAGE
+//                        }, EXTERNAL_STORAGE);
+//            }
+//        }
+
 
         visualizerFrameLayout = findViewById(R.id.xmlVisualizerFrame);
 
@@ -93,9 +112,6 @@ public class MainActivity extends AppCompatActivity {
     private void pauseAnim() {
         if (visualizerAnimator1 == null || visualizerAnimator2 == null || visualizerAnimator3 == null)
             return;
-        visuallizerImage1.setVisibility(View.INVISIBLE);
-        visuallizerImage2.setVisibility(View.INVISIBLE);
-        visuallizerImage3.setVisibility(View.INVISIBLE);
         visualizerAnimator1.cancel();
         visualizerAnimator2.cancel();
         visualizerAnimator3.cancel();
@@ -110,9 +126,6 @@ public class MainActivity extends AppCompatActivity {
     private void startAnim() {
         if (visualizerAnimator1.isStarted() || visualizerAnimator2.isStarted() || visualizerAnimator3.isStarted())
             return;
-        visuallizerImage1.setVisibility(View.VISIBLE);
-        visuallizerImage2.setVisibility(View.VISIBLE);
-        visuallizerImage3.setVisibility(View.VISIBLE);
         visualizerAnimator1.start();
         visualizerAnimator2.start();
         visualizerAnimator3.start();
@@ -129,28 +142,45 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (grantResults.length <= 0) {
+            return;
+        }
+        switch (requestCode) {
+            case EXTERNAL_STORAGE: {
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    showAlert("終了", "アプリを起動できません", "確認", (dialogInterface, i) -> {
+                        finish();
+                    });
+                }
+            }
+        }
+        return ;
+    }
+
     final class ButtonActions implements View.OnClickListener {
         @Override
         public void onClick(View view) {
             int viewId = view.getId();
             if (viewId == R.id.xmlShowSDCardButton) {
                 // SDCard
-                stopAnim();
-//                if (mediaPlayer != null) {
-//                    mediaPlayer.pause();
-//                    pausedTime = mediaPlayer.getCurrentPosition();
-//                    isPlaying = false;
-//                    visualizerAnimator.cancel();
-//                }
-//                Intent intent = new Intent(MainActivity.this, SDListActivity.class);
-//                startActivity(intent);
+                if (mediaPlayer != null) {
+                    mediaPlayer.pause();
+                    pausedTime = mediaPlayer.getCurrentPosition();
+                    isPlaying = false;
+                    pauseAnim();
+                }
+                Intent intent = new Intent(MainActivity.this, SDListActivity.class);
+                startActivity(intent);
             } else if (viewId == R.id.xmlPlayButton) {
                 // Play
-                startAnim();
-//                if (mediaPlayer == null) {
-//                    showAlert("", "音楽を選択してください", "確認", null);
-//                    return;
-//                }
+                if (mediaPlayer == null) {
+                    showAlert("", "音楽を選択してください", "確認", null);
+                    return;
+                }
             } else if (viewId == R.id.xmlStopButton) {
                 // Stop
                 if (mediaPlayer == null || !isPlaying) {
