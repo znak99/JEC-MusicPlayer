@@ -66,7 +66,7 @@
                 android:layout_height="match_parent"
                 android:layout_marginStart="12dp"
                 android:background="@null"
-                android:layout_weight="0.3"
+                android:layout_weight="0.2"
                 android:padding="4dp"
                 android:src="@drawable/sd"
                 android:scaleType="fitCenter"/>
@@ -87,21 +87,37 @@
                 android:layout_marginEnd="12dp"
                 android:background="@null"
                 android:padding="4dp"
-                android:layout_weight="0.3"
+                android:layout_weight="0.2"
                 android:src="@drawable/stop"
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"/>
 
         </LinearLayout>
 
-        <SeekBar
-            android:id="@+id/xmlProgressBar"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
-            android:thumbTint="@color/customPrimary"
-            android:progressTint="@color/customSecondary"
-            android:layout_marginVertical="12dp"/>
+            android:gravity="center_vertical">
+
+            <SeekBar
+                android:id="@+id/xmlProgressBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="12dp"
+                android:thumbTint="@color/customPrimary"
+                android:progressTint="@color/customSecondary"
+                android:layout_marginVertical="12dp"/>
+
+            <TextView
+                android:id="@+id/xmlPlayTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/black"
+                android:text="00:00"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 
