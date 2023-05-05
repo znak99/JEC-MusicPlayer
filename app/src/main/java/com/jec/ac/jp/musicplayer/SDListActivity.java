@@ -5,12 +5,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -45,7 +45,11 @@ public class SDListActivity extends AppCompatActivity {
         list.setOnItemClickListener((parent, view, pos, id) -> {
             ListView listView = (ListView) parent;
             RowModel item = (RowModel) listView.getItemAtPosition(pos);
-            //TODO 선택시 처리
+
+            Intent intent = getIntent();
+            intent.putExtra("SELECTED_FILE", item.getFile().getAbsoluteFile().toString());
+            setResult(RESULT_OK, intent);
+            finish();
         });
     }
 

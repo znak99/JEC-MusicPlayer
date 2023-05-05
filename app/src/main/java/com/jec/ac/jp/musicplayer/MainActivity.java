@@ -1,11 +1,10 @@
 package com.jec.ac.jp.musicplayer;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
@@ -14,9 +13,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
+import android.provider.Settings;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private int pausedTime = 0;
     private boolean isPlaying = false;
+    private boolean isPreparing = false;
     private MediaPlayer mediaPlayer;
     private ImageButton playButton, sdCardButton, stopButton;
     private TextView currentSelectedMedia;
@@ -46,17 +48,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        if (Build.VERSION.SDK_INT >= 23) {
-//            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
-//                    ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//                ActivityCompat.requestPermissions(this,
-//                        new String[]{
-//                                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-//                                Manifest.permission.READ_EXTERNAL_STORAGE
-//                        }, EXTERNAL_STORAGE);
-//            }
-//        }
-
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                    ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{
+                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                        }, EXTERNAL_STORAGE);
+            }
+        }
 
         visualizerFrameLayout = findViewById(R.id.xmlVisualizerFrame);
 
@@ -143,6 +144,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        playButton.setImageResource(R.drawable.play);
+
+        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
+            String path = data.getStringExtra("SELECTED_FILE");
+
+            mediaPlayer = new MediaPlayer();
+
+            try {
+                mediaPlayer.setDataSource(MainActivity.this, Uri.parse(path));
+                mediaPlayer.setOnCompletionListener(mediaPlayer -> {
+                    mediaPlayer.pause();
+                    pausedTime = 0;
+
+                    isPlaying = false;
+                    playButton.setImageResource(R.drawable.play);
+                    stopAnim();
+                });
+                mediaPlayer.setOnPreparedListener(mediaPlayer -> {
+                    Toast.makeText(this, "メディアを初期化しました。", Toast.LENGTH_SHORT).show();
+                    String currentSelectedMusic = "";
+
+                    if (path.contains("/")) {
+                        String[] pAry = path.split("/");
+                        currentSelectedMusic = pAry[pAry.length - 1];
+                    }
+
+                    currentSelectedMedia.setText("Now playing：" + currentSelectedMusic);
+                    isPreparing = false;
+                    pausedTime = 0;
+                    stopAnim();
+                });
+                mediaPlayer.prepareAsync();
+                isPreparing = true;
+
+                currentSelectedMedia.setText("メディアを初期化しています……");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
@@ -152,7 +198,12 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case EXTERNAL_STORAGE: {
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                    showAlert("終了", "アプリを起動できません", "確認", (dialogInterface, i) -> {
+                    showAlert("Inaccessible", "権限がないとアプリを起動できません\n\nメディアへのアクセスを許可した後\nまた起動してください", "終了", (dialogInterface, i) -> {
+                        Intent intent = new Intent();
+                        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        Uri uri = Uri.fromParts("package", getPackageName(), null);
+                        intent.setData(uri);
+                        startActivity(intent);
                         finish();
                     });
                 }
@@ -174,13 +225,34 @@ public class MainActivity extends AppCompatActivity {
                     pauseAnim();
                 }
                 Intent intent = new Intent(MainActivity.this, SDListActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, REQUEST_CODE);
             } else if (viewId == R.id.xmlPlayButton) {
                 // Play
+                if (isPreparing) {
+                    showAlert("メディア初期化中", "メディアを初期化しています。", "確認", null);
+                    return;
+                }
                 if (mediaPlayer == null) {
                     showAlert("", "音楽を選択してください", "確認", null);
                     return;
                 }
+
+                if (isPlaying) {
+                    mediaPlayer.pause();
+                    pausedTime = mediaPlayer.getCurrentPosition();
+
+                    isPlaying = false;
+                    playButton.setImageResource(R.drawable.play);
+                    pauseAnim();
+                } else {
+                    mediaPlayer.seekTo(pausedTime);
+                    mediaPlayer.start();
+
+                    isPlaying = true;
+                    playButton.setImageResource(R.drawable.pause);
+                    startAnim();
+                }
+
             } else if (viewId == R.id.xmlStopButton) {
                 // Stop
                 if (mediaPlayer == null || !isPlaying) {
@@ -191,6 +263,9 @@ public class MainActivity extends AppCompatActivity {
                 mediaPlayer = null;
                 pausedTime = 0;
                 isPlaying = false;
+                playButton.setImageResource(R.drawable.play);
+                currentSelectedMedia.setText("SDカードから音楽を選択してください");
+                stopAnim();
             }
         }
     }
