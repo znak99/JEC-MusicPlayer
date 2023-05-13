@@ -21,7 +21,11 @@ import android.widget.TextView;
 import java.io.File;
 
 public class SDListActivity extends AppCompatActivity {
+
+    private TextView pathTxt;
     private RowModelAdapter adapter;
+    private String currentPath;
+    private String initPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +34,8 @@ public class SDListActivity extends AppCompatActivity {
 
         ImageButton backButton = findViewById(R.id.xmlDismissButton);
         backButton.setOnClickListener(v -> finish());
+
+        pathTxt = findViewById(R.id.xmlPathTxt);
 
         adapter = new RowModelAdapter(this);
 
@@ -41,7 +47,11 @@ public class SDListActivity extends AppCompatActivity {
             }
         }
 
-        ListView list = (ListView) findViewById(R.id.xmlListView);
+        initPath = path.getAbsolutePath();
+        pathTxt.setText("PATH: " + path.getAbsolutePath());
+
+
+        ListView list = findViewById(R.id.xmlListView);
         list.setAdapter(adapter);
         list.setOnItemClickListener((parent, view, pos, id) -> {
             ListView listView = (ListView) parent;
@@ -53,7 +63,15 @@ public class SDListActivity extends AppCompatActivity {
                 setResult(RESULT_OK, intent);
                 finish();
             } else if (item.isDirectory()) {
-
+                String newPath = item.getFile().getAbsolutePath();
+                displayFiles(newPath);
+            } else if (item.getFile() == null) {
+                String[] dirs = currentPath.split("/");
+                StringBuilder newPath = new StringBuilder();
+                for (int i = 0; i < dirs.length - 1; i++) {
+                    newPath.append(dirs[i]).append("/");
+                }
+                displayFiles(newPath.toString());
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(SDListActivity.this);
 
@@ -66,6 +84,27 @@ public class SDListActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void displayFiles(String path) {
+        adapter.clear();
+
+        File directory = new File(path);
+        currentPath = directory.getAbsolutePath(); // 현재 디렉토리 경로를 업데이트합니다.
+
+        if (!currentPath.equals(initPath)) {
+            adapter.add(new RowModel(null));
+        }
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                adapter.add(new RowModel(file));
+            }
+        }
+
+        TextView pathTxt = findViewById(R.id.xmlPathTxt);
+        pathTxt.setText("PATH: " + currentPath); // 표시 중인 디렉토리 경로를 업데이트합니다.
+    }
+
 
     final class RowModelAdapter extends ArrayAdapter<RowModel> {
         public RowModelAdapter(@NonNull Context context) {
@@ -94,7 +133,11 @@ public class SDListActivity extends AppCompatActivity {
                     name.setText(row.getFileName());
                 }
                 if (size != null) {
-                    size.setText(String.valueOf(row.getFileSize()));
+                    if (row.getFileSize() == 0) {
+                        size.setText("");
+                    } else {
+                        size.setText(String.valueOf(row.getFileSize()));
+                    }
                 }
             }
             return convertView;

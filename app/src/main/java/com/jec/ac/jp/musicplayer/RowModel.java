@@ -8,7 +8,11 @@ public class RowModel {
 
     public RowModel(File file) {
         this.file = file;
-        setIcon(file);
+        if (file == null) {
+            this.icon = R.drawable.baseline_undo_24;
+        } else {
+            setIcon(file);
+        }
     }
     private void setIcon(File file) {
         if (file.isFile()) {
@@ -24,6 +28,9 @@ public class RowModel {
     }
 
     public String getFileName() {
+        if (this.file == null) {
+            return "../";
+        }
         String fileName = file.getName();
         if (!file.isFile()) {
             fileName += "/";
@@ -33,6 +40,9 @@ public class RowModel {
     }
 
     public long getFileSize() {
+        if (this.file == null || this.file.isDirectory()) {
+            return 0;
+        }
         return file.length();
     }
 
@@ -41,6 +51,9 @@ public class RowModel {
     }
 
     public boolean isMediaFile() {
+        if (this.file == null) {
+            return false;
+        }
         String extension = this.file.getName().split("\\.")[this.file.getName().split("\\.").length - 1];
         if (extension.equals("mp3") || extension.equals("wav")) {
             return true;
@@ -49,6 +62,9 @@ public class RowModel {
     }
 
     public boolean isDirectory() {
+        if (this.file == null) {
+            return false;
+        }
         return this.file.isDirectory();
     }
 }
