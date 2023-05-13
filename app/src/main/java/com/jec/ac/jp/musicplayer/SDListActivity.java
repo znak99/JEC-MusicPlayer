@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -46,10 +47,23 @@ public class SDListActivity extends AppCompatActivity {
             ListView listView = (ListView) parent;
             RowModel item = (RowModel) listView.getItemAtPosition(pos);
 
-            Intent intent = getIntent();
-            intent.putExtra("SELECTED_FILE", item.getFile().getAbsoluteFile().toString());
-            setResult(RESULT_OK, intent);
-            finish();
+            if (item.isMediaFile()) {
+                Intent intent = getIntent();
+                intent.putExtra("SELECTED_FILE", item.getFile().getAbsoluteFile().toString());
+                setResult(RESULT_OK, intent);
+                finish();
+            } else if (item.isDirectory()) {
+
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(SDListActivity.this);
+
+                builder.setTitle("Unexecutable");
+                builder.setMessage("音源ファイル以外のファイルは使用できません");
+                builder.setPositiveButton("確認", null);
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
         });
     }
 
@@ -74,7 +88,7 @@ public class SDListActivity extends AppCompatActivity {
                 TextView size = convertView.findViewById(R.id.xmlFileSize);
 
                 if (icon != null) {
-
+                    icon.setImageResource(row.getIcon());
                 }
                 if (name != null) {
                     name.setText(row.getFileName());

@@ -16,6 +16,8 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
@@ -23,6 +25,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,16 +34,19 @@ public class MainActivity extends AppCompatActivity {
     private int pausedTime = 0;
     private boolean isPlaying = false;
     private boolean isPreparing = false;
+    private boolean isSeeking = false;
+
     private MediaPlayer mediaPlayer;
     private ImageButton playButton, sdCardButton, stopButton;
-    private TextView currentSelectedMedia;
+    private TextView currentSelectedMedia, playingTime;
     private FrameLayout visualizerFrameLayout;
-
+    private SeekBar progressBar;
     private ImageView visuallizerImage1, visuallizerImage2, visuallizerImage3;
     private ObjectAnimator visualizerAnimator1, visualizerAnimator2, visualizerAnimator3;
-    
-    private static final int EXTERNAL_STORAGE = 1;
 
+    private static final int EXTERNAL_STORAGE = 1;
+    private static final int UPDATE_PROGRESS = 1;
+    private static final int PROGRESS_UPDATE_INTERVAL = 500;
     public static int REQUEST_CODE = 1;
 
     @Override
@@ -72,6 +78,32 @@ public class MainActivity extends AppCompatActivity {
 
         stopButton = findViewById(R.id.xmlStopButton);
         stopButton.setOnClickListener(new ButtonActions());
+
+        progressBar = findViewById(R.id.xmlProgressBar);
+
+        progressBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    if (!isPreparing) {
+                        mediaPlayer.seekTo(progress);
+                    }
+                    updatePlayingTime(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                isSeeking = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                isSeeking = false;
+            }
+        });
+
+        playingTime = findViewById(R.id.xmlPlayTimer);
 
         visuallizerImage1 = createImageView(250, 250);
         visuallizerImage2 = createImageView(300, 300);
@@ -143,6 +175,57 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void updatePlayingTime(int milliseconds) {
+        int seconds = (milliseconds / 1000) % 60;
+        int minutes = (milliseconds / (1000 * 60)) % 60;
+        String time = String.format("%02d:%02d", minutes, seconds);
+        playingTime.setText(time);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isPlaying) {
+            progressUpdateHandler.sendEmptyMessage(UPDATE_PROGRESS);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            // SeekBar 업데이트 중인 경우에만 사용자 조작에 따라 위치 업데이트
+            if (isPlaying && !isSeeking) {
+                progressUpdateHandler.sendEmptyMessage(UPDATE_PROGRESS);
+            }
+        } else {
+            // 화면 포커스가 없는 경우에는 SeekBar 업데이트 중지
+            progressUpdateHandler.removeMessages(UPDATE_PROGRESS);
+        }
+    }
+
+    private Handler progressUpdateHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message message) {
+            if (message.what == UPDATE_PROGRESS) {
+                if (mediaPlayer != null) {
+                    int currentPosition = mediaPlayer.getCurrentPosition();
+                    progressBar.setProgress(currentPosition);
+                    updatePlayingTime(currentPosition);
+                }
+                progressUpdateHandler.sendEmptyMessageDelayed(UPDATE_PROGRESS, PROGRESS_UPDATE_INTERVAL);
+            }
+            return true;
+        }
+    });
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 업데이트 중지
+        progressUpdateHandler.removeMessages(UPDATE_PROGRESS);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -177,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
                     isPreparing = false;
                     pausedTime = 0;
                     stopAnim();
+                    progressBar.setMax(mediaPlayer.getDuration());
                 });
                 mediaPlayer.prepareAsync();
                 isPreparing = true;
@@ -185,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            progressUpdateHandler.sendEmptyMessage(UPDATE_PROGRESS);
         }
     }
 
@@ -228,10 +313,12 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, REQUEST_CODE);
             } else if (viewId == R.id.xmlPlayButton) {
                 // Play
+                Log.i("MainActivity", "Play 버튼 눌림");
                 if (isPreparing) {
                     showAlert("メディア初期化中", "メディアを初期化しています。", "確認", null);
                     return;
                 }
+
                 if (mediaPlayer == null) {
                     showAlert("", "音楽を選択してください", "確認", null);
                     return;
@@ -243,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
 
                     isPlaying = false;
                     playButton.setImageResource(R.drawable.play);
+                    progressUpdateHandler.removeMessages(UPDATE_PROGRESS);
                     pauseAnim();
                 } else {
                     mediaPlayer.seekTo(pausedTime);
@@ -250,12 +338,13 @@ public class MainActivity extends AppCompatActivity {
 
                     isPlaying = true;
                     playButton.setImageResource(R.drawable.pause);
+                    progressUpdateHandler.sendEmptyMessage(UPDATE_PROGRESS);
                     startAnim();
                 }
 
             } else if (viewId == R.id.xmlStopButton) {
                 // Stop
-                if (mediaPlayer == null || !isPlaying) {
+                if (mediaPlayer == null) {
                     return;
                 }
                 mediaPlayer.stop();
@@ -265,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
                 isPlaying = false;
                 playButton.setImageResource(R.drawable.play);
                 currentSelectedMedia.setText("SDカードから音楽を選択してください");
+                progressUpdateHandler.removeMessages(UPDATE_PROGRESS);
                 stopAnim();
             }
         }

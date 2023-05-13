@@ -8,13 +8,14 @@ public class RowModel {
 
     public RowModel(File file) {
         this.file = file;
-        this.icon = setIcon(file);
+        setIcon(file);
     }
-    private int setIcon(File file) {
+    private void setIcon(File file) {
         if (file.isFile()) {
-            return R.drawable.baseline_insert_drive_file_24;
+            this.icon = isMediaFile() ?
+                    R.drawable.baseline_audio_file_24 : R.drawable.baseline_insert_drive_file_24;
         } else {
-            return R.drawable.baseline_folder_24;
+            this.icon = R.drawable.baseline_folder_24;
         }
     }
 
@@ -37,5 +38,17 @@ public class RowModel {
 
     public File getFile() {
         return file;
+    }
+
+    public boolean isMediaFile() {
+        String extension = this.file.getName().split("\\.")[this.file.getName().split("\\.").length - 1];
+        if (extension.equals("mp3") || extension.equals("wav")) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isDirectory() {
+        return this.file.isDirectory();
     }
 }
